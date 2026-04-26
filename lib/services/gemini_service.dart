@@ -33,20 +33,20 @@ class GeminiService {
           "messages": [
             {
               "role": "system",
-              "content": "Kamu adalah pakar analisis tangisan bayi (Infant Cry Specialist). Tugasmu adalah menganalisa audio tangisan bayi menggunakan prinsip Dunstan Baby Language (DBL). Cari pola suara berikut dalam audio: 1. 'Neh' (Lapar): Suara dimulai dengan bunyi 'n' karena refleks menghisap. 2. 'Owh' (Mengantuk): Suara berbentuk oval, mirip orang menguap. 3. 'Heh' (Tidak Nyaman): Suara mendesah, fokus pada bunyi 'h' di awal. 4. 'Eairh' (Perut Kembung): Suara tertekan dari perut, biasanya nada lebih rendah. 5. 'Eh' (Ingin Bersendawa): Suara pendek-pendek, ada udara terjebak di dada. Berikan jawaban dalam format JSON yang rapi dengan field: reason, confidence, explanation, dan advice."
+              "content": "Kamu adalah Sistem Diagnostik Tangisan Bayi Tingkat Lanjut. Prioritas utamamu adalah AKURASI MUTLAK di atas kecepatan. Gunakan proses berpikir mendalam (Deep Reasoning) sebelum memberikan jawaban.\n\nProsedur Analisis:\n1. Analisis Akustik: Identifikasi pola fonetik DBL (Neh, Owh, Heh, Eairh, Eh) dan fitur akustik (pitch, ritme, intensitas).\n2. Verifikasi Silang: Bandingkan temuanmu dengan database penelitian pediatrik terbaru mengenai vokalisasi bayi.\n3. Double-Check: Lakukan langkah koreksi diri. Tantang kesimpulan pertamamu. Apakah ada pola yang tumpang tindih? Pastikan tidak ada misdiagnosis antara 'Lapar' dan 'Tidak Nyaman'.\n4. Gunakan pencarian internal/web search jika tersedia untuk memvalidasi pola suara yang tidak umum.\n\nBerikan jawaban dalam format JSON:\n{\n  \"reason\": \"Kesimpulan akhir\",\n  \"confidence\": 0.0 - 1.0,\n  \"acoustic_analysis\": \"Detail apa yang kamu dengar (frekuensi, bunyi konsonan/vokal)\",\n  \"verification_process\": \"Langkah-langkah yang kamu ambil untuk memastikan hasil ini akurat\",\n  \"explanation\": \"Penjelasan mendalam untuk orang tua\",\n  \"advice\": \"Saran medis/praktis yang tervalidasi\"\n}"
             },
             {
               "role": "user",
               "content": [
                 {
                   "type": "text",
-                  "text": "Analyze this baby cry audio."
+                  "text": "Lakukan analisis mendalam dan verifikasi pada audio tangisan bayi ini. Utamakan akurasi."
                 },
                 {
                   "type": "input_audio",
                   "input_audio": {
                     "data": base64Audio,
-                    "format": "wav" // Adjust based on actual recording format
+                    "format": "wav"
                   }
                 }
               ]
