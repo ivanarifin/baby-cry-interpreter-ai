@@ -93,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         final path = '${directory.path}/baby_cry.wav';
         
         await _recorder.start(const RecordConfig(), path: path);
-        await _recorderController.record(); // Start visualizer
+        await _recorderController.record();
         
         _pulseController.repeat(reverse: true);
         
@@ -139,14 +139,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Future<void> _stopRecording({bool autoStopped = false}) async {
     try {
       _timer?.cancel();
+      final amp = await _recorder.getAmplitude();
       final path = await _recorder.stop();
-      await _recorderController.stop(); // Stop visualizer
+      await _recorderController.stop();
       _pulseController.stop();
       
       if (!mounted) return;
 
       setState(() {
         _isRecording = false;
+      });
+
+      if (amp.max < -45) {
+        setState(() {
+          _status = "Sound too quiet or silent.";
+          _result = "No clear sound detected. Please record closer to the baby.";
+        });
+        return;
+      }
+
+      setState(() {
         _status = autoStopped ? "Cry detected! Analyzing..." : "Analyzing the cry...";
       });
 
@@ -335,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                           const SizedBox(height: 15),
                           const Text(
-                            "*PENTING: Jika bayi terus menangis atau terlihat sakit, segera hubungi dokter. Jangan hanya mengandalkan AI.",
+                            "*IMPORTANT: If the baby continues to cry or appears ill, contact a doctor immediately. Do not rely solely on AI.",
                             style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.redAccent),
                           ),
                         ],
