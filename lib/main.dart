@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:audio_waveforms/audio_waveforms.dart';
 import 'dart:io';
 import 'dart:async';
 import 'services/gemini_service.dart';
@@ -42,6 +43,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final AudioRecorder _recorder = AudioRecorder();
+  late RecorderController _recorderController;
+  
   bool _isRecording = false;
   String _status = "Tap to listen to your baby";
   String _result = "";
@@ -66,12 +69,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       vsync: this,
       duration: const Duration(seconds: 1),
     );
+
+    _recorderController = RecorderController()
+      ..androidEncoder = AndroidEncoder.aac
+      ..androidOutputFormat = AndroidOutputFormat.mpeg4
+      ..iosEncoder = IosEncoder.kAudioFormatMPEG4AAC
+      ..sampleRate = 44100;
   }
 
   @override
   void dispose() {
     _recorder.dispose();
     _pulseController.dispose();
+    _recorderController.dispose();
     _timer?.cancel();
     super.dispose();
   }
@@ -83,6 +93,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         final path = '${directory.path}/baby_cry.wav';
         
         await _recorder.start(const RecordConfig(), path: path);
+        await _recorderController.record(); // Start visualizer
+        
         _pulseController.repeat(reverse: true);
         
         setState(() {
@@ -112,12 +124,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           _currentDb = amp.current;
         });
 
-        // Jika suara di atas -35dB (asumsi tangisan/suara keras)
         if (amp.current > -35) {
           _validAudioSeconds++;
         }
 
-        // Jika sudah terkumpul ~6 detik audio valid (12 x 500ms)
         if (_validAudioSeconds >= 12) {
           timer.cancel();
           _stopRecording(autoStopped: true);
@@ -130,6 +140,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     try {
       _timer?.cancel();
       final path = await _recorder.stop();
+      await _recorderController.stop(); // Stop visualizer
       _pulseController.stop();
       
       if (!mounted) return;
@@ -197,6 +208,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ),
                 ),
                 const Spacer(),
+                if (_isRecording)
+                  FadeIn(
+                    child: AudioWaveforms(
+                      size: Size(MediaQuery.of(context).size.width, 100.0),
+                      recorderController: _recorderController,
+                      enableGesture: false,
+                      waveformStyle: WaveformStyle(
+                        waveColor: const Color(0xFF6C63FF),
+                        showMiddleLine: false,
+                        spacing: 8.0,
+                        extendWaveform: true,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 30),
                 Center(
                   child: Stack(
                     alignment: Alignment.center,
@@ -249,11 +275,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     padding: const EdgeInsets.only(top: 20),
                     child: Column(
                       children: [
-                        Text(
-                          "Volume: ${_currentDb.toStringAsFixed(1)} dB",
-                          style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                        ),
-                        const SizedBox(height: 5),
                         LinearProgressIndicator(
                           value: _validAudioSeconds / 12,
                           backgroundColor: Colors.grey[200],
@@ -298,6 +319,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           Text(
                             _result,
                             style: const TextStyle(fontSize: 15, height: 1.5),
+                          ),
+                          const SizedBox(height: 15),
+                          const Text(
+                            "*Hasil ini hanya referensi AI. Selalu percayai insting orang tua.",
+                            style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey),
                           ),
                         ],
                       ),
