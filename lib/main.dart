@@ -4,6 +4,7 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:animate_do/animate_do.dart';
 import 'dart:io';
+import 'dart:async';
 import 'services/gemini_service.dart';
 
 void main() async {
@@ -45,6 +46,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   String _status = "Tap to listen to your baby";
   String _result = "";
   double _currentDb = -160.0;
+  int _validAudioSeconds = 0;
+  Timer? _timer;
   
   late GeminiService _geminiService;
   late AnimationController _pulseController;
@@ -69,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void dispose() {
     _recorder.dispose();
     _pulseController.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -83,62 +87,69 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         
         setState(() {
           _isRecording = true;
-          _status = "Listening carefully...";
+          _status = "Listening for baby cry...";
           _result = "";
+          _validAudioSeconds = 0;
         });
 
-        // Monitor amplitude
-        _monitorAmplitude();
+        _startAutoStopMonitor();
       }
     } catch (e) {
       setState(() => _status = "Error: $e");
     }
   }
 
-  void _monitorAmplitude() async {
-    while (_isRecording) {
-      await Future.delayed(const Duration(milliseconds: 200));
+  void _startAutoStopMonitor() {
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
+      if (!_isRecording) {
+        timer.cancel();
+        return;
+      }
+
       final amp = await _recorder.getAmplitude();
       if (mounted) {
         setState(() {
           _currentDb = amp.current;
         });
+
+        // Jika suara di atas -35dB (asumsi tangisan/suara keras)
+        if (amp.current > -35) {
+          _validAudioSeconds++;
+        }
+
+        // Jika sudah terkumpul ~6 detik audio valid (12 x 500ms)
+        if (_validAudioSeconds >= 12) {
+          timer.cancel();
+          _stopRecording(autoStopped: true);
+        }
       }
-    }
+    });
   }
 
-  Future<void> _stopRecording() async {
+  Future<void> _stopRecording({bool autoStopped = false}) async {
     try {
-      final amp = await _recorder.getAmplitude();
+      _timer?.cancel();
       final path = await _recorder.stop();
       _pulseController.stop();
       
+      if (!mounted) return;
+
       setState(() {
         _isRecording = false;
-      });
-
-      // Local Pre-filtering: Cek apakah suara cukup keras (tangisan biasanya > -30dB)
-      if (amp.max < -45) {
-        setState(() {
-          _status = "Suara terlalu pelan atau sunyi.";
-          _result = "Waduh Bos, suaranya nggak kedengeran. Coba rekam lebih deket ke bayinya ya!";
-        });
-        return;
-      }
-
-      setState(() {
-        _status = "Analyzing the cry...";
+        _status = autoStopped ? "Cry detected! Analyzing..." : "Analyzing the cry...";
       });
 
       if (path != null) {
         final response = await _geminiService.analyzeCry(File(path));
-        setState(() {
-          _result = response;
-          _status = "Analysis Complete";
-        });
+        if (mounted) {
+          setState(() {
+            _result = response;
+            _status = "Analysis Complete";
+          });
+        }
       }
     } catch (e) {
-      setState(() => _status = "Error: $e");
+      if (mounted) setState(() => _status = "Error: $e");
     }
   }
 
@@ -206,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                       ZoomIn(
                         child: GestureDetector(
-                          onTap: _isRecording ? _stopRecording : _startRecording,
+                          onTap: _isRecording ? () => _stopRecording() : _startRecording,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             width: 100,
@@ -236,9 +247,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 if (_isRecording)
                   Padding(
                     padding: const EdgeInsets.only(top: 20),
-                    child: Text(
-                      "Volume: ${_currentDb.toStringAsFixed(1)} dB",
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    child: Column(
+                      children: [
+                        Text(
+                          "Volume: ${_currentDb.toStringAsFixed(1)} dB",
+                          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        ),
+                        const SizedBox(height: 5),
+                        LinearProgressIndicator(
+                          value: _validAudioSeconds / 12,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text("Listening for a clear cry...", style: TextStyle(fontSize: 10)),
+                      ],
                     ),
                   ),
                 const Spacer(),
