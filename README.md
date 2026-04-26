@@ -1,23 +1,25 @@
-# Baby Cry Interpreter AI 👶🍼
+# Infant Cry Diagnostic System (ICDS) 🏥👶🎙️
 
-AI-powered mobile application to detect and interpret baby cries (Hungry, Sleepy, Uncomfortable, etc.) using Gemini 3 Flash.
+A professional-grade mobile application designed for the objective analysis and interpretation of infant vocalizations using Gemini 3 Flash's native multimodal capabilities.
 
-## 🚀 Features
-- **Real-time Audio Recording:** Capture baby cries directly from your device.
-- **AI Analysis:** Uses Gemini 3 Flash's native audio understanding to interpret the cry.
-- **Modern UI/UX:** Clean, animated interface with Material 3 and smooth transitions.
-- **Actionable Insights:** Provides advice for parents based on the AI's findings.
+## 🚀 Key Features
+- **Acoustic Data Acquisition:** High-fidelity real-time audio recording of infant cries.
+- **Multimodal AI Analysis:** Leverages Gemini 3 Flash for native audio understanding, identifying phonetic markers based on established pediatric research (e.g., Dunstan Baby Language).
+- **Clinical-Grade Reporting:** Provides technical summaries of acoustic findings, diagnostic confidence scores, and objective explanations.
+- **Criticality Assessment:** Automated detection of high-intensity or abnormal acoustic markers that may indicate medical urgency.
+- **Professional UI/UX:** A clean, clinical interface designed for high-stakes environments with real-time waveform visualization.
 
 ## 🛠 Tech Stack
-- **Framework:** [Flutter](https://flutter.dev/)
-- **AI Model:** Gemini 3 Flash (via OpenAI Compatible Proxy)
-- **Animations:** `animate_do`
-- **Audio:** `record` & `path_provider`
+- **Framework:** [Flutter](https://flutter.dev/) (Material 3)
+- **AI Engine:** Gemini 3 Flash (via OpenAI Compatible API)
+- **Signal Processing:** `audio_waveforms` for real-time visualization.
+- **Audio Engine:** `record` & `path_provider`.
+- **Animations:** `animate_do` for seamless transitions.
 
 ## 📋 Prerequisites
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) installed on your machine.
-- A code editor (VS Code or Android Studio).
-- Access to a Gemini 3 Flash API (or a compatible proxy).
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (Stable channel).
+- A compatible IDE (VS Code, Android Studio, or IntelliJ).
+- Access to a Gemini 3 Flash API endpoint or a compatible proxy.
 
 ## ⚙️ Setup & Installation
 
@@ -27,44 +29,45 @@ AI-powered mobile application to detect and interpret baby cries (Hungry, Sleepy
    cd baby-cry-interpreter-ai
    ```
 
-2. **Configure Environment Variables:**
-   Copy the `.env.example` file to `.env` and fill in your credentials:
+2. **Environment Configuration:**
+   Create a `.env` file based on the provided template:
    ```bash
    cp .env.example .env
    ```
-   Edit `.env`:
-   - `AI_BASE_URL`: Your proxy/API base URL (e.g., `http://localhost:8317/v1`).
-   - `AI_API_KEY`: Your API key.
-   - `X_OAUTH_KEY`: Your specific account ID (if using a proxy).
+   Required variables:
+   - `AI_BASE_URL`: Your API/Proxy base URL.
+   - `AI_API_KEY`: Your authentication key.
+   - `AI_MODEL`: `gemini-3-flash` (or compatible).
+   - `X_OAUTH_KEY`: Account identifier (if applicable).
 
-3. **Install Dependencies:**
+3. **Dependency Installation:**
    ```bash
    flutter pub get
    ```
 
-4. **Run the Application:**
-   - **Web (Chrome/Brave):**
-     ```bash
-     flutter run -d chrome
-     ```
-   - **Android (Physical Device):**
-     Make sure USB Debugging is enabled, then:
+4. **Deployment:**
+   - **Mobile (Android/iOS):** Ensure a physical device is connected with debugging enabled.
      ```bash
      flutter run
      ```
-   - **Windows Desktop:**
+   - **Web (Chromium-based):**
+     ```bash
+     flutter run -d chrome
+     ```
+   - **Desktop (Windows):**
      ```bash
      flutter run -d windows
      ```
 
-## 📱 How to Use
-1. Open the app.
-2. Tap the **Mic** button to start recording the baby's cry.
-3. Tap the **Stop** button when finished (recommend 5-10 seconds).
-4. Wait for the AI to analyze and display the result.
+## 📱 Operational Procedure
+1. Initialize the application.
+2. Position the device's microphone within optimal range of the infant.
+3. Activate the **Diagnostic Input** (Mic icon) to begin data acquisition.
+4. The system will automatically terminate recording once sufficient acoustic data is acquired (approx. 6 seconds of clear signal).
+5. Review the **Diagnostic Report** for findings and recommendations.
 
-## 🤝 Contributing
-Feel free to fork this project and submit PRs for any improvements or new features!
+## ⚖️ Legal Disclaimer
+This system is intended for informational and educational purposes only. It does not constitute medical advice, diagnosis, or treatment. Always seek the advice of a physician or other qualified health provider with any questions regarding a medical condition. Never disregard professional medical advice or delay in seeking it because of information provided by this application.
 
 ---
-Made with ❤️ for parents everywhere.
+Developed for advanced pediatric acoustic research.
