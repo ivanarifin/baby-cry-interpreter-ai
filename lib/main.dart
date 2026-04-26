@@ -44,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _isRecording = false;
   String _status = "Tap to listen to your baby";
   String _result = "";
+  double _currentDb = -160.0;
   
   late GeminiService _geminiService;
   late AnimationController _pulseController;
@@ -85,19 +86,47 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           _status = "Listening carefully...";
           _result = "";
         });
+
+        // Monitor amplitude
+        _monitorAmplitude();
       }
     } catch (e) {
       setState(() => _status = "Error: $e");
     }
   }
 
+  void _monitorAmplitude() async {
+    while (_isRecording) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      final amp = await _recorder.getAmplitude();
+      if (mounted) {
+        setState(() {
+          _currentDb = amp.current;
+        });
+      }
+    }
+  }
+
   Future<void> _stopRecording() async {
     try {
+      final amp = await _recorder.getAmplitude();
       final path = await _recorder.stop();
       _pulseController.stop();
       
       setState(() {
         _isRecording = false;
+      });
+
+      // Local Pre-filtering: Cek apakah suara cukup keras (tangisan biasanya > -30dB)
+      if (amp.max < -45) {
+        setState(() {
+          _status = "Suara terlalu pelan atau sunyi.";
+          _result = "Waduh Bos, suaranya nggak kedengeran. Coba rekam lebih deket ke bayinya ya!";
+        });
+        return;
+      }
+
+      setState(() {
         _status = "Analyzing the cry...";
       });
 
@@ -204,6 +233,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ],
                   ),
                 ),
+                if (_isRecording)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: Text(
+                      "Volume: ${_currentDb.toStringAsFixed(1)} dB",
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    ),
+                  ),
                 const Spacer(),
                 if (_result.isNotEmpty)
                   FadeInUp(
