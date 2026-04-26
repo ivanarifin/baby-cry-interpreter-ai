@@ -211,7 +211,7 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
                     size: Size(MediaQuery.of(context).size.width, 80.0),
                     recorderController: _recorderController,
                     enableGesture: false,
-                    waveformStyle: const WaveformStyle(
+                    waveStyle: const WaveStyle(
                       waveColor: Color(0xFF3498DB),
                       showMiddleLine: false,
                       spacing: 6.0,
@@ -234,7 +234,7 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
                           height: 110,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFFE74C3C).withOpacity(0.15),
+                            color: const Color(0xFFE74C3C).withValues(alpha: 0.15),
                           ),
                         ),
                       ),
@@ -249,7 +249,7 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
                           color: _isRecording ? const Color(0xFFE74C3C) : const Color(0xFF2D3E50),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
