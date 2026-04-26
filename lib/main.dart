@@ -11,44 +11,44 @@ import 'services/gemini_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  runApp(const BabyCryApp());
+  runApp(const InfantCryDiagnosticApp());
 }
 
-class BabyCryApp extends StatelessWidget {
-  const BabyCryApp({super.key});
+class InfantCryDiagnosticApp extends StatelessWidget {
+  const InfantCryDiagnosticApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Baby Cry Interpreter',
+      title: 'Infant Cry Diagnostic System',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C63FF),
+          seedColor: const Color(0xFF2D3E50),
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        fontFamily: 'Roboto',
       ),
-      home: const HomeScreen(),
+      home: const DiagnosticScreen(),
     );
   }
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class DiagnosticScreen extends StatefulWidget {
+  const DiagnosticScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<DiagnosticScreen> createState() => _DiagnosticScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerProviderStateMixin {
   final AudioRecorder _recorder = AudioRecorder();
   late RecorderController _recorderController;
   
   bool _isRecording = false;
-  String _status = "Tap to listen to your baby";
+  String _status = "Ready for Diagnostic Input";
   String _result = "";
-  double _currentDb = -160.0;
   int _validAudioSeconds = 0;
   Timer? _timer;
   
@@ -90,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     try {
       if (await _recorder.hasPermission()) {
         final directory = await getApplicationDocumentsDirectory();
-        final path = '${directory.path}/baby_cry.wav';
+        final path = '${directory.path}/diagnostic_sample.wav';
         
         await _recorder.start(const RecordConfig(), path: path);
         await _recorderController.record();
@@ -99,19 +99,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         
         setState(() {
           _isRecording = true;
-          _status = "Listening for baby cry...";
+          _status = "Acquiring Acoustic Data...";
           _result = "";
           _validAudioSeconds = 0;
         });
 
-        _startAutoStopMonitor();
+        _startDiagnosticMonitor();
       }
     } catch (e) {
-      setState(() => _status = "Error: $e");
+      setState(() => _status = "Hardware Error: $e");
     }
   }
 
-  void _startAutoStopMonitor() {
+  void _startDiagnosticMonitor() {
     _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
       if (!_isRecording) {
         timer.cancel();
@@ -120,23 +120,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
       final amp = await _recorder.getAmplitude();
       if (mounted) {
-        setState(() {
-          _currentDb = amp.current;
-        });
-
         if (amp.current > -35) {
           _validAudioSeconds++;
         }
 
         if (_validAudioSeconds >= 12) {
           timer.cancel();
-          _stopRecording(autoStopped: true);
+          _stopRecording();
         }
       }
     });
   }
 
-  Future<void> _stopRecording({bool autoStopped = false}) async {
+  Future<void> _stopRecording() async {
     try {
       _timer?.cancel();
       final amp = await _recorder.getAmplitude();
@@ -152,14 +148,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
       if (amp.max < -45) {
         setState(() {
-          _status = "Sound too quiet or silent.";
-          _result = "No clear sound detected. Please record closer to the baby.";
+          _status = "Insufficient Signal Strength";
+          _result = "Error: No clear acoustic signal detected. Please ensure the device is positioned correctly.";
         });
         return;
       }
 
       setState(() {
-        _status = autoStopped ? "Cry detected! Analyzing..." : "Analyzing the cry...";
+        _status = "Processing Diagnostic Data...";
       });
 
       if (path != null) {
@@ -167,196 +163,173 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         if (mounted) {
           setState(() {
             _result = response;
-            _status = "Analysis Complete";
+            _status = "Diagnostic Analysis Complete";
           });
         }
       }
     } catch (e) {
-      if (mounted) setState(() => _status = "Error: $e");
+      if (mounted) setState(() => _status = "System Error: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-              Colors.white,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 50),
-                FadeInDown(
-                  child: const Text(
-                    "Baby Whisperer AI",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF4A4A4A),
+      backgroundColor: const Color(0xFFF5F7F9),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              FadeInDown(
+                child: const Text(
+                  "Infant Cry Diagnostic System",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2D3E50),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              FadeInDown(
+                delay: const Duration(milliseconds: 200),
+                child: Text(
+                  _status,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF7F8C8D),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (_isRecording)
+                FadeIn(
+                  child: AudioWaveforms(
+                    size: Size(MediaQuery.of(context).size.width, 80.0),
+                    recorderController: _recorderController,
+                    enableGesture: false,
+                    waveformStyle: const WaveformStyle(
+                      waveColor: Color(0xFF3498DB),
+                      showMiddleLine: false,
+                      spacing: 6.0,
+                      extendWaveform: true,
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                FadeInDown(
-                  delay: const Duration(milliseconds: 200),
-                  child: Text(
-                    _status,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                if (_isRecording)
-                  FadeIn(
-                    child: AudioWaveforms(
-                      size: Size(MediaQuery.of(context).size.width, 100.0),
-                      recorderController: _recorderController,
-                      enableGesture: false,
-                      waveformStyle: WaveformStyle(
-                        waveColor: const Color(0xFF6C63FF),
-                        showMiddleLine: false,
-                        spacing: 8.0,
-                        extendWaveform: true,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 30),
-                Center(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (_isRecording)
-                        ScaleTransition(
-                          scale: Tween(begin: 1.0, end: 1.5).animate(
-                            CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-                          ),
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.red.withOpacity(0.2),
-                            ),
-                          ),
+              const SizedBox(height: 20),
+              Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (_isRecording)
+                      ScaleTransition(
+                        scale: Tween(begin: 1.0, end: 1.4).animate(
+                          CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
                         ),
-                      ZoomIn(
-                        child: GestureDetector(
-                          onTap: _isRecording ? () => _stopRecording() : _startRecording,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _isRecording ? Colors.red : const Color(0xFF6C63FF),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (_isRecording ? Colors.red : const Color(0xFF6C63FF)).withOpacity(0.4),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                              size: 50,
-                              color: Colors.white,
-                            ),
+                        child: Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFE74C3C).withOpacity(0.15),
                           ),
                         ),
                       ),
-                    ],
+                    GestureDetector(
+                      onTap: _isRecording ? () => _stopRecording() : _startRecording,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _isRecording ? const Color(0xFFE74C3C) : const Color(0xFF2D3E50),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isRecording)
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: SizedBox(
+                    width: 150,
+                    child: LinearProgressIndicator(
+                      value: _validAudioSeconds / 12,
+                      backgroundColor: const Color(0xFFBDC3C7),
+                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE74C3C)),
+                    ),
                   ),
                 ),
-                if (_isRecording)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20),
+              const Spacer(),
+              if (_result.isNotEmpty)
+                FadeInUp(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: _result.contains('"is_emergency": true') 
+                        ? Border.all(color: const Color(0xFFE74C3C), width: 2) 
+                        : Border.all(color: const Color(0xFFDCDDE1), width: 1),
+                    ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        LinearProgressIndicator(
-                          value: _validAudioSeconds / 12,
-                          backgroundColor: Colors.grey[200],
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
+                        Row(
+                          children: [
+                            Icon(
+                              _result.contains('"is_emergency": true') 
+                                ? Icons.report_problem_rounded 
+                                : Icons.analytics_outlined, 
+                              color: _result.contains('"is_emergency": true') ? const Color(0xFFE74C3C) : const Color(0xFF3498DB), 
+                              size: 20
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              _result.contains('"is_emergency": true') ? "CRITICAL ALERT" : "Diagnostic Report",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold, 
+                                fontSize: 16,
+                                color: _result.contains('"is_emergency": true') ? const Color(0xFFE74C3C) : const Color(0xFF2D3E50)
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 5),
-                        const Text("Listening for a clear cry...", style: TextStyle(fontSize: 10)),
+                        const Divider(height: 25),
+                        Text(
+                          _result,
+                          style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF34495E)),
+                        ),
+                        const SizedBox(height: 15),
+                        const Text(
+                          "DISCLAIMER: This system is for informational purposes only and does not constitute medical advice. Consult a healthcare professional for clinical concerns.",
+                          style: TextStyle(fontSize: 10, color: Color(0xFF95A5A6)),
+                        ),
                       ],
                     ),
                   ),
-                const Spacer(),
-                if (_result.isNotEmpty)
-                  FadeInUp(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: _result.contains('"is_emergency": true') 
-                          ? Border.all(color: Colors.red, width: 2) 
-                          : null,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                _result.contains('"is_emergency": true') 
-                                  ? Icons.warning_rounded 
-                                  : Icons.auto_awesome, 
-                                color: _result.contains('"is_emergency": true') ? Colors.red : Colors.amber, 
-                                size: 20
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _result.contains('"is_emergency": true') ? "EMERGENCY ALERT" : "AI Analysis",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold, 
-                                  fontSize: 18,
-                                  color: _result.contains('"is_emergency": true') ? Colors.red : Colors.black
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 25),
-                          Text(
-                            _result,
-                            style: const TextStyle(fontSize: 15, height: 1.5),
-                          ),
-                          const SizedBox(height: 15),
-                          const Text(
-                            "*IMPORTANT: If the baby continues to cry or appears ill, contact a doctor immediately. Do not rely solely on AI.",
-                            style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.redAccent),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 50),
-              ],
-            ),
+                ),
+              const SizedBox(height: 40),
+            ],
           ),
         ),
       ),

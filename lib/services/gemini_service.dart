@@ -17,7 +17,6 @@ class GeminiService {
 
   Future<String> analyzeCry(File audioFile) async {
     try {
-      // Convert audio to Base64
       List<int> audioBytes = await audioFile.readAsBytes();
       String base64Audio = base64Encode(audioBytes);
 
@@ -33,22 +32,23 @@ class GeminiService {
           "messages": [
             {
               "role": "system",
-              "content": "You are an Advanced Infant Cry Diagnostic System. Your primary priorities are ABSOLUTE ACCURACY and INFANT SAFETY.
+              "content": "You are a professional Infant Cry Diagnostic System. Your objective is to provide objective, clinical-grade analysis of infant vocalizations based on established pediatric research and acoustic patterns. Maintain a strictly professional and formal tone. Avoid informal language or personal addresses.
 
-Analysis Procedure:
-0. Subject Validation: Ensure there is a baby crying sound. If not, set is_baby_cry: false.
-1. Acoustic Analysis: Identify DBL patterns (Neh, Owh, Heh, Eairh, Eh).
-2. Uncertainty Handling: If patterns are unclear or overlapping, state your uncertainty. DO NOT guess if unsure.
-3. Red Flag Detection: If the cry sounds unusually high-pitched, unnatural, or indicates intense pain, prioritize immediate medical advice.
+Analysis Protocol:
+1. Subject Verification: Confirm the presence of infant crying. If absent, set 'is_baby_cry' to false.
+2. Acoustic Pattern Recognition: Identify specific phonetic markers (e.g., DBL patterns: Neh, Owh, Heh, Eairh, Eh) and acoustic features (frequency, rhythm, intensity).
+3. Diagnostic Confidence: Provide a confidence score. If patterns are ambiguous, explicitly state the uncertainty. Do not provide speculative diagnoses.
+4. Criticality Assessment: Identify high-intensity or abnormal acoustic markers that may indicate severe distress or medical urgency.
 
-Provide the answer in a clean JSON format:
+Output Format (JSON):
 {
-  \"is_baby_cry\": true/false,
-  \"reason\": \"Conclusion (Hungry/Sleepy/etc or 'Not Detected')\",
-  \"confidence\": 0.0 - 1.0,
-  \"explanation\": \"Brief explanation of the acoustic findings\",
-  \"advice\": \"Practical advice for parents\",
-  \"is_emergency\": true/false (set true if the cry sounds highly unusual or indicates severe pain)
+  \"is_baby_cry\": boolean,
+  \"reason\": \"Primary classification (e.g., Hunger, Fatigue, Discomfort, or Undetermined)\",
+  \"confidence\": float (0.0 - 1.0),
+  \"acoustic_analysis\": \"Technical summary of identified acoustic markers\",
+  \"explanation\": \"Objective explanation of the findings\",
+  \"advice\": \"Standard pediatric recommendations for the identified state\",
+  \"is_emergency\": boolean
 }"
             },
             {
@@ -56,7 +56,7 @@ Provide the answer in a clean JSON format:
               "content": [
                 {
                   "type": "text",
-                  "text": "Lakukan analisis mendalam dan verifikasi pada audio tangisan bayi ini. Utamakan akurasi."
+                  "text": "Initiate diagnostic analysis on the provided audio sample."
                 },
                 {
                   "type": "input_audio",
@@ -75,10 +75,10 @@ Provide the answer in a clean JSON format:
       if (response.statusCode == 200) {
         return response.body;
       } else {
-        throw Exception('Failed to analyze cry: ${response.statusCode} - ${response.body}');
+        throw Exception('API Error: ${response.statusCode}');
       }
     } catch (e) {
-      return 'Error: $e';
+      return 'System Error: $e';
     }
   }
 }
