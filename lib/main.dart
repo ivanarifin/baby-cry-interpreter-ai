@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:animate_do/animate_do.dart';
 import 'dart:io';
 import 'services/gemini_service.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   runApp(const BabyCryApp());
 }
@@ -17,8 +19,12 @@ class BabyCryApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Baby Cry Interpreter',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6C63FF),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
       home: const HomeScreen(),
@@ -33,13 +39,14 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final AudioRecorder _recorder = AudioRecorder();
   bool _isRecording = false;
-  String _status = "Press the button to start recording";
+  String _status = "Tap to listen to your baby";
   String _result = "";
   
   late GeminiService _geminiService;
+  late AnimationController _pulseController;
 
   @override
   void initState() {
@@ -50,11 +57,17 @@ class _HomeScreenState extends State<HomeScreen> {
       model: dotenv.env['AI_MODEL'] ?? 'gemini-3-flash',
       oauthKey: dotenv.env['X_OAUTH_KEY'],
     );
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
   }
 
   @override
   void dispose() {
     _recorder.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -65,24 +78,27 @@ class _HomeScreenState extends State<HomeScreen> {
         final path = '${directory.path}/baby_cry.wav';
         
         await _recorder.start(const RecordConfig(), path: path);
+        _pulseController.repeat(reverse: true);
         
         setState(() {
           _isRecording = true;
-          _status = "Recording... (Speak or let the baby cry)";
+          _status = "Listening carefully...";
           _result = "";
         });
       }
     } catch (e) {
-      setState(() => _status = "Error starting record: $e");
+      setState(() => _status = "Error: $e");
     }
   }
 
   Future<void> _stopRecording() async {
     try {
       final path = await _recorder.stop();
+      _pulseController.stop();
+      
       setState(() {
         _isRecording = false;
-        _status = "Analyzing audio...";
+        _status = "Analyzing the cry...";
       });
 
       if (path != null) {
@@ -93,50 +109,144 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (e) {
-      setState(() => _status = "Error stopping record: $e");
+      setState(() => _status = "Error: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Baby Cry Interpreter AI")),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_status, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 30),
-            Center(
-              child: GestureDetector(
-                onTap: _isRecording ? _stopRecording : _startRecording,
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: _isRecording ? Colors.red : Colors.blue,
-                  child: Icon(
-                    _isRecording ? Icons.stop : Icons.mic,
-                    size: 50,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
-            if (_result.isNotEmpty)
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Container(
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(10),
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 50),
+                FadeInDown(
+                  child: const Text(
+                    "Baby Whisperer AI",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF4A4A4A),
                     ),
-                    child: Text(_result, style: const TextStyle(fontFamily: 'monospace')),
                   ),
                 ),
-              ),
-          ],
+                const SizedBox(height: 10),
+                FadeInDown(
+                  delay: const Duration(milliseconds: 200),
+                  child: Text(
+                    _status,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (_isRecording)
+                        ScaleTransition(
+                          scale: Tween(begin: 1.0, end: 1.5).animate(
+                            CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+                          ),
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.red.withOpacity(0.2),
+                            ),
+                          ),
+                        ),
+                      ZoomIn(
+                        child: GestureDetector(
+                          onTap: _isRecording ? _stopRecording : _startRecording,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _isRecording ? Colors.red : const Color(0xFF6C63FF),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (_isRecording ? Colors.red : const Color(0xFF6C63FF)).withOpacity(0.4),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                              size: 50,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                if (_result.isNotEmpty)
+                  FadeInUp(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                "AI Analysis",
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 25),
+                          Text(
+                            _result,
+                            style: const TextStyle(fontSize: 15, height: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 50),
+              ],
+            ),
+          ),
         ),
       ),
     );
