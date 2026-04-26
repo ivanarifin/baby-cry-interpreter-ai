@@ -294,6 +294,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
+                        border: _result.contains('"is_emergency": true') 
+                          ? Border.all(color: Colors.red, width: 2) 
+                          : null,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
@@ -305,13 +308,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
-                              SizedBox(width: 8),
+                              Icon(
+                                _result.contains('"is_emergency": true') 
+                                  ? Icons.warning_rounded 
+                                  : Icons.auto_awesome, 
+                                color: _result.contains('"is_emergency": true') ? Colors.red : Colors.amber, 
+                                size: 20
+                              ),
+                              const SizedBox(width: 8),
                               Text(
-                                "AI Analysis",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                _result.contains('"is_emergency": true') ? "EMERGENCY ALERT" : "AI Analysis",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold, 
+                                  fontSize: 18,
+                                  color: _result.contains('"is_emergency": true') ? Colors.red : Colors.black
+                                ),
                               ),
                             ],
                           ),
@@ -322,8 +335,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                           const SizedBox(height: 15),
                           const Text(
-                            "*Hasil ini hanya referensi AI. Selalu percayai insting orang tua.",
-                            style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey),
+                            "*PENTING: Jika bayi terus menangis atau terlihat sakit, segera hubungi dokter. Jangan hanya mengandalkan AI.",
+                            style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.redAccent),
                           ),
                         ],
                       ),
