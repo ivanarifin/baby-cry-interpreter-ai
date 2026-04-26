@@ -62,7 +62,6 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
       baseUrl: dotenv.env['AI_BASE_URL'] ?? '',
       apiKey: dotenv.env['AI_API_KEY'] ?? '',
       model: dotenv.env['AI_MODEL'] ?? 'gemini-3-flash',
-      oauthKey: dotenv.env['X_OAUTH_KEY'],
     );
 
     _pulseController = AnimationController(

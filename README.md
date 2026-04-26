@@ -36,9 +36,8 @@ A professional-grade mobile application designed for the objective analysis and 
    ```
    Required variables:
    - `AI_BASE_URL`: Your API/Proxy base URL.
-   - `AI_API_KEY`: Your authentication key.
-   - `AI_MODEL`: `gemini-3-flash` (or compatible).
-   - `X_OAUTH_KEY`: Account identifier (if applicable).
+    - `AI_API_KEY`: Your authentication key.
+    - `AI_MODEL`: `gemini-3-flash` (or compatible).
 
 3. **Dependency Installation:**
    ```bash

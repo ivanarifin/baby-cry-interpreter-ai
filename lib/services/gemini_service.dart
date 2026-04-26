@@ -6,13 +6,11 @@ class GeminiService {
   final String baseUrl;
   final String apiKey;
   final String model;
-  final String? oauthKey;
 
   GeminiService({
     required this.baseUrl,
     required this.apiKey,
     required this.model,
-    this.oauthKey,
   });
 
   Future<String> analyzeCry(File audioFile) async {
@@ -25,7 +23,6 @@ class GeminiService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $apiKey',
-          if (oauthKey != null) 'X-OAuth-Key': oauthKey!,
         },
         body: jsonEncode({
           "model": model,
