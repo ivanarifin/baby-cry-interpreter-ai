@@ -6,6 +6,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 import 'services/gemini_service.dart';
 
 void main() async {
@@ -42,16 +43,47 @@ class DiagnosticScreen extends StatefulWidget {
   State<DiagnosticScreen> createState() => _DiagnosticScreenState();
 }
 
-class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerProviderStateMixin {
+class _DiagnosticScreenState extends State<DiagnosticScreen>
+    with SingleTickerProviderStateMixin {
+  Widget _buildDiagnosticItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF7F8C8D),
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: Color(0xFF34495E),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   final AudioRecorder _recorder = AudioRecorder();
   late RecorderController _recorderController;
-  
+
   bool _isRecording = false;
   String _status = "Ready for Diagnostic Input";
   String _result = "";
+  Map<String, dynamic>? _parsedResult;
   int _validAudioSeconds = 0;
   Timer? _timer;
-  
+
   late GeminiService _geminiService;
   late AnimationController _pulseController;
 
@@ -90,16 +122,17 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
       if (await _recorder.hasPermission()) {
         final directory = await getApplicationDocumentsDirectory();
         final path = '${directory.path}/diagnostic_sample.wav';
-        
+
         await _recorder.start(const RecordConfig(), path: path);
         await _recorderController.record();
-        
+
         _pulseController.repeat(reverse: true);
-        
+
         setState(() {
           _isRecording = true;
           _status = "Acquiring Acoustic Data...";
           _result = "";
+          _parsedResult = null;
           _validAudioSeconds = 0;
         });
 
@@ -138,7 +171,7 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
       final path = await _recorder.stop();
       await _recorderController.stop();
       _pulseController.stop();
-      
+
       if (!mounted) return;
 
       setState(() {
@@ -148,7 +181,9 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
       if (amp.max < -45) {
         setState(() {
           _status = "Insufficient Signal Strength";
-          _result = "Error: No clear acoustic signal detected. Please ensure the device is positioned correctly.";
+          _result =
+              "Error: No clear acoustic signal detected. Please ensure the device is positioned correctly.";
+          _parsedResult = null;
         });
         return;
       }
@@ -162,6 +197,22 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
         if (mounted) {
           setState(() {
             _result = response;
+            try {
+              // Clean the response from markdown code blocks or extra text if present
+              String cleanedResponse = response.trim();
+              
+              // Find the first '{' and last '}' to extract the JSON object
+              final int startIndex = cleanedResponse.indexOf('{');
+              final int endIndex = cleanedResponse.lastIndexOf('}');
+              
+              if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+                cleanedResponse = cleanedResponse.substring(startIndex, endIndex + 1);
+              }
+              
+              _parsedResult = jsonDecode(cleanedResponse);
+            } catch (e) {
+              _parsedResult = null;
+            }
             _status = "Diagnostic Analysis Complete";
           });
         }
@@ -227,26 +278,33 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
                     if (_isRecording)
                       ScaleTransition(
                         scale: Tween(begin: 1.0, end: 1.4).animate(
-                          CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+                          CurvedAnimation(
+                              parent: _pulseController,
+                              curve: Curves.easeInOut),
                         ),
                         child: Container(
                           width: 110,
                           height: 110,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFFE74C3C).withValues(alpha: 0.15),
+                            color:
+                                const Color(0xFFE74C3C).withValues(alpha: 0.15),
                           ),
                         ),
                       ),
                     GestureDetector(
-                      onTap: _isRecording ? () => _stopRecording() : _startRecording,
+                      onTap: _isRecording
+                          ? () => _stopRecording()
+                          : _startRecording,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         width: 90,
                         height: 90,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _isRecording ? const Color(0xFFE74C3C) : const Color(0xFF2D3E50),
+                          color: _isRecording
+                              ? const Color(0xFFE74C3C)
+                              : const Color(0xFF2D3E50),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.1),
@@ -256,7 +314,9 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
                           ],
                         ),
                         child: Icon(
-                          _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
+                          _isRecording
+                              ? Icons.stop_rounded
+                              : Icons.mic_none_rounded,
                           size: 40,
                           color: Colors.white,
                         ),
@@ -273,57 +333,103 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> with SingleTickerPr
                     child: LinearProgressIndicator(
                       value: _validAudioSeconds / 12,
                       backgroundColor: const Color(0xFFBDC3C7),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE74C3C)),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFFE74C3C)),
                     ),
                   ),
                 ),
               const Spacer(),
               if (_result.isNotEmpty)
-                FadeInUp(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: _result.contains('"is_emergency": true') 
-                        ? Border.all(color: const Color(0xFFE74C3C), width: 2) 
-                        : Border.all(color: const Color(0xFFDCDDE1), width: 1),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              _result.contains('"is_emergency": true') 
-                                ? Icons.report_problem_rounded 
-                                : Icons.analytics_outlined, 
-                              color: _result.contains('"is_emergency": true') ? const Color(0xFFE74C3C) : const Color(0xFF3498DB), 
-                              size: 20
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              _result.contains('"is_emergency": true') ? "CRITICAL ALERT" : "Diagnostic Report",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold, 
-                                fontSize: 16,
-                                color: _result.contains('"is_emergency": true') ? const Color(0xFFE74C3C) : const Color(0xFF2D3E50)
+                Expanded(
+                  child: FadeInUp(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: (_parsedResult?['is_emergency'] == true)
+                            ? Border.all(
+                                color: const Color(0xFFE74C3C), width: 2)
+                            : Border.all(
+                                color: const Color(0xFFDCDDE1), width: 1),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                  (_parsedResult?['is_emergency'] == true)
+                                      ? Icons.report_problem_rounded
+                                      : Icons.analytics_outlined,
+                                  color:
+                                      (_parsedResult?['is_emergency'] == true)
+                                          ? const Color(0xFFE74C3C)
+                                          : const Color(0xFF3498DB),
+                                  size: 20),
+                              const SizedBox(width: 10),
+                              Text(
+                                (_parsedResult?['is_emergency'] == true)
+                                    ? "CRITICAL ALERT"
+                                    : "Diagnostic Report",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color:
+                                        (_parsedResult?['is_emergency'] == true)
+                                            ? const Color(0xFFE74C3C)
+                                            : const Color(0xFF2D3E50)),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 25),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (_parsedResult != null) ...[
+                                    _buildDiagnosticItem(
+                                        "Classification",
+                                        _parsedResult!['reason']?.toString() ??
+                                            "Unknown"),
+                                    _buildDiagnosticItem("Confidence",
+                                        "${((_parsedResult!['confidence'] ?? 0.0) * 100).toStringAsFixed(1)}%"),
+                                    _buildDiagnosticItem(
+                                        "Acoustic Analysis",
+                                        _parsedResult!['acoustic_analysis']
+                                                ?.toString() ??
+                                            "N/A"),
+                                    _buildDiagnosticItem(
+                                        "Explanation",
+                                        _parsedResult!['explanation']
+                                                ?.toString() ??
+                                            "N/A"),
+                                    _buildDiagnosticItem(
+                                        "Advice",
+                                        _parsedResult!['advice']?.toString() ??
+                                            "N/A"),
+                                  ] else
+                                    Text(
+                                      _result,
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          height: 1.4,
+                                          color: Color(0xFF34495E)),
+                                    ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                        const Divider(height: 25),
-                        Text(
-                          _result,
-                          style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF34495E)),
-                        ),
-                        const SizedBox(height: 15),
-                        const Text(
-                          "DISCLAIMER: This system is for informational purposes only and does not constitute medical advice. Consult a healthcare professional for clinical concerns.",
-                          style: TextStyle(fontSize: 10, color: Color(0xFF95A5A6)),
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 15),
+                          const Text(
+                            "DISCLAIMER: This system is for informational purposes only and does not constitute medical advice. Consult a healthcare professional for clinical concerns.",
+                            style: TextStyle(
+                                fontSize: 10, color: Color(0xFF95A5A6)),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

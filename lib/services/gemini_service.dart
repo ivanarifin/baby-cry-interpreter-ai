@@ -46,7 +46,9 @@ Output Format (JSON):
   "explanation": "Objective explanation of the findings",
   "advice": "Standard pediatric recommendations for the identified state",
   "is_emergency": boolean
-}"""
+}
+
+IMPORTANT: Return ONLY the raw JSON object. Do not include markdown code blocks, preamble, or any other text."""
             },
             {
               "role": "user",
@@ -70,7 +72,8 @@ Output Format (JSON):
       );
 
       if (response.statusCode == 200) {
-        return response.body;
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return data['choices'][0]['message']['content'] ?? '';
       } else {
         throw Exception('API Error: ${response.statusCode}');
       }
